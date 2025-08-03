@@ -30,57 +30,44 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Create documentation structure
-        run: |
-          mkdir -p docs/{architecture,design-system,performance,accessibility}
-          mkdir -p src/{components,hooks,utils}
-
-      - name: Generate daily documentation
+      - name: Generate documentation
         run: |
           DAY=$(date '+%u')
           DATE=$(date '+%Y-%m-%d')
           
           case $DAY in
-            1)
-              FILE="docs/architecture/component-architecture-$DATE.md"
-              CONTENT="# Component Architecture - $DATE\n\n## Patrones avanzados\n- Atomic Design\n- Componentes compuestos\n- Patrón Provider"
-              COMMIT_MSG="🏗️ Arquitectura de componentes"
+            1) 
+              echo "# Component Architecture - $DATE" > docs/architecture.md
+              echo "- Atomic Design" >> docs/architecture.md
               ;;
             2)
-              FILE="docs/react/advanced-patterns-$DATE.md"
-              CONTENT="# React Avanzado - $DATE\n\n## Técnicas\n- Concurrent Rendering\n- Suspense para data fetching\n- Custom hooks"
-              COMMIT_MSG="⚛️ Patrones avanzados de React"
+              echo "# React Patterns - $DATE" > docs/react.md
+              echo "- Concurrent Rendering" >> docs/react.md
               ;;
             3)
-              FILE="docs/performance/optimization-$DATE.md"
-              CONTENT="# Optimización - $DATE\n\n## Core Web Vitals\n- FCP: 0.6s\n- LCP: 0.8s\n- CLS: 0.01"
-              COMMIT_MSG="🚀 Optimización de performance"
+              echo "# Performance - $DATE" > docs/performance.md
+              echo "- Core Web Vitals" >> docs/performance.md
               ;;
             4)
-              FILE="docs/accessibility/audit-$DATE.md"
-              CONTENT="# Accesibilidad - $DATE\n\n## Cumplimiento WCAG\n- Nivel AA: 100%\n- Nivel AAA: 87%\n\n## Tecnologías soportadas\n- NVDA\n- JAWS\n- VoiceOver"
-              COMMIT_MSG="♿ Auditoría de accesibilidad"
+              echo "# Accessibility - $DATE" > docs/accessibility.md
+              echo "- WCAG Compliance" >> docs/accessibility.md
               ;;
             5)
-              FILE="docs/documentation/system-$DATE.md"
-              CONTENT="# Documentación - $DATE\n\n## Componentes\n- 98% documentados\n- 156 ejemplos interactivos\n\n## Storybook\n- Addons: Controls, Actions, Viewport"
-              COMMIT_MSG="📚 Sistema de documentación"
+              echo "# Documentation - $DATE" > docs/documentation.md
+              echo "- Storybook" >> docs/documentation.md
               ;;
             6)
-              FILE="docs/innovation/research-$DATE.md"
-              CONTENT="# Innovación - $DATE\n\n## Tecnologías emergentes\n- React Server Components\n- CSS Container Queries\n- WebAssembly\n\n## Evaluación\n- SolidJS\n- SvelteKit"
-              COMMIT_MSG="🔬 Investigación e innovación"
+              echo "# Innovation - $DATE" > docs/innovation.md
+              echo "- Emerging Technologies" >> docs/innovation.md
               ;;
           esac
-
-          echo -e $CONTENT > $FILE
 
       - name: Commit changes
         run: |
           git config user.email "frontend@company.com"
           git config user.name "Frontend Automation"
-          git add .
-          git commit -m "$COMMIT_MSG"
+          git add docs/
+          git commit -m "📚 Daily documentation update"
           git push
 
   issue-management:
@@ -94,46 +81,22 @@ jobs:
             const DAY = new Date().getDay();
             const DATE = new Date().toISOString().split('T')[0];
             
-            const templates = {
-              1: {
-                title: "🏗️ Arquitectura de Componentes",
-                body: `## Plan semanal de arquitectura\n- Revisar patrones de diseño\n- Optimizar estructura de componentes\n- Documentar decisiones`,
-                labels: ['architecture', 'components']
-              },
-              2: {
-                title: "⚛️ Desarrollo React Avanzado",
-                body: `## Objetivos de React\n- Implementar Concurrent Features\n- Optimizar custom hooks\n- Mejorar pruebas unitarias`,
-                labels: ['react', 'performance']
-              },
-              3: {
-                title: "🚀 Optimización de Performance",
-                body: `## Metas de performance\n- FCP < 0.5s\n- LCP < 1.0s\n- CLS < 0.05`,
-                labels: ['performance', 'ux']
-              },
-              4: {
-                title: "♿ Accesibilidad y Testing",
-                body: `## Auditoría WCAG\n- Verificar nivel AAA\n- Pruebas con NVDA/JAWS\n- Cross-browser testing`,
-                labels: ['accessibility', 'testing']
-              },
-              5: {
-                title: "📚 Documentación y Revisiones",
-                body: `## Actualizar documentación\n- Componentes\n- API\n- Guías de desarrollo`,
-                labels: ['documentation', 'code-review']
-              },
-              6: {
-                title: "🔬 Innovación y Planificación",
-                body: `## Investigación tecnológica\n- Evaluar nuevas librerías\n- Planificar roadmap\n- Analizar métricas`,
-                labels: ['innovation', 'planning']
-              }
+            const issues = {
+              1: {title: "🏗️ Component Architecture", labels: ['architecture']},
+              2: {title: "⚛️ React Development", labels: ['react']},
+              3: {title: "🚀 Performance Optimization", labels: ['performance']},
+              4: {title: "♿ Accessibility", labels: ['accessibility']},
+              5: {title: "📚 Documentation", labels: ['documentation']},
+              6: {title: "🔬 Innovation", labels: ['innovation']}
             };
             
-            if (templates[DAY]) {
+            if (issues[DAY]) {
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: templates[DAY].title + ' - ' + DATE,
-                body: templates[DAY].body,
-                labels: templates[DAY].labels
+                title: `${issues[DAY].title} - ${DATE}`,
+                body: "Daily frontend tasks",
+                labels: issues[DAY].labels
               });
             }
 
@@ -141,7 +104,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: frontend-development
     steps:
-      - name: Create Pull Request
+      - name: Create PR
         uses: actions/github-script@v7
         with:
           script: |
@@ -152,11 +115,6 @@ jobs:
               title: `Frontend Updates - ${DATE}`,
               head: "main",
               base: "develop",
-              body: "## Mejoras implementadas\n- Documentación actualizada\n- Nuevos patrones de componentes\n- Optimizaciones de performance",
-              labels: ['frontend', 'enhancement']
+              body: "Daily frontend improvements",
+              labels: ['frontend']
             });
-              
-              console.log(`✅ Created professional PR: ${prTemplate.title}`);
-            } catch (error) {
-              console.error('Error creating branch or PR:', error);
-            }
