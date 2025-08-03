@@ -24,51 +24,49 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necesario para operaciones git posteriores
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Create docs directory
+        run: mkdir -p docs  # Asegura que el directorio exista
+
       - name: Generate documentation
         run: |
           DAY=$(date '+%u')
           DATE=$(date '+%Y-%m-%d')
+          FILE="docs/daily-$DATE.md"
           
           case $DAY in
-            1) 
-              echo "# Component Architecture - $DATE" > docs/architecture.md
-              echo "- Atomic Design" >> docs/architecture.md
-              ;;
-            2)
-              echo "# React Patterns - $DATE" > docs/react.md
-              echo "- Concurrent Rendering" >> docs/react.md
-              ;;
-            3)
-              echo "# Performance - $DATE" > docs/performance.md
-              echo "- Core Web Vitals" >> docs/performance.md
-              ;;
-            4)
-              echo "# Accessibility - $DATE" > docs/accessibility.md
-              echo "- WCAG Compliance" >> docs/accessibility.md
-              ;;
-            5)
-              echo "# Documentation - $DATE" > docs/documentation.md
-              echo "- Storybook" >> docs/documentation.md
-              ;;
-            6)
-              echo "# Innovation - $DATE" > docs/innovation.md
-              echo "- Emerging Technologies" >> docs/innovation.md
-              ;;
+            1) CONTENT="# Architecture\n- Atomic Design\n- Component Composition" ;;
+            2) CONTENT="# React\n- Concurrent Features\n- Custom Hooks" ;;
+            3) CONTENT="# Performance\n- Core Web Vitals\n- Bundle Optimization" ;;
+            4) CONTENT="# Accessibility\n- WCAG Compliance\n- Screen Readers" ;;
+            5) CONTENT="# Documentation\n- Storybook\n- TypeScript Docs" ;;
+            6) CONTENT="# Innovation\n- Emerging Tech\n- Research" ;;
+            *) CONTENT="# Frontend Update\n$DATE" ;;  # Fallback para días no cubiertos
           esac
+          
+          echo -e $CONTENT > $FILE
+          echo "Generated: $FILE"
 
       - name: Commit changes
         run: |
-          git config user.email "frontend@company.com"
+          git config user.email "frontend-automation@company.com"
           git config user.name "Frontend Automation"
-          git add docs/
-          git commit -m "📚 Daily documentation update"
-          git push
+          
+          # Verifica si hay cambios antes de commitear
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "📚 Frontend update: $(date '+%Y-%m-%d')"
+            git push
+          else
+            echo "No changes to commit"
+          fi
 
   issue-management:
     runs-on: ubuntu-latest
@@ -82,39 +80,47 @@ jobs:
             const DATE = new Date().toISOString().split('T')[0];
             
             const issues = {
-              1: {title: "🏗️ Component Architecture", labels: ['architecture']},
-              2: {title: "⚛️ React Development", labels: ['react']},
-              3: {title: "🚀 Performance Optimization", labels: ['performance']},
-              4: {title: "♿ Accessibility", labels: ['accessibility']},
-              5: {title: "📚 Documentation", labels: ['documentation']},
-              6: {title: "🔬 Innovation", labels: ['innovation']}
+              1: {title: "🏗️ Component Architecture", body: "Weekly component structure review"},
+              2: {title: "⚛️ React Development", body: "Advanced patterns implementation"},
+              3: {title: "🚀 Performance Optimization", body: "Core Web Vitals analysis"},
+              4: {title: "♿ Accessibility", body: "WCAG compliance audit"},
+              5: {title: "📚 Documentation", body: "Update component docs"},
+              6: {title: "🔬 Innovation", body: "Research emerging technologies"}
             };
             
-            if (issues[DAY]) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: `${issues[DAY].title} - ${DATE}`,
-                body: "Daily frontend tasks",
-                labels: issues[DAY].labels
-              });
-            }
+            const template = issues[DAY] || {
+              title: "Frontend Tasks",
+              body: "General frontend improvements"
+            };
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `${template.title} - ${DATE}`,
+              body: template.body,
+              labels: ['frontend', 'automation']
+            });
 
   pull-request:
     runs-on: ubuntu-latest
     needs: frontend-development
+    if: ${{ success() }}  # Solo se ejecuta si el job anterior fue exitoso
     steps:
       - name: Create PR
         uses: actions/github-script@v7
         with:
           script: |
             const DATE = new Date().toISOString().split('T')[0];
-            await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Frontend Updates - ${DATE}`,
-              head: "main",
-              base: "develop",
-              body: "Daily frontend improvements",
-              labels: ['frontend']
-            });
+            try {
+              await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Frontend Updates - ${DATE}`,
+                head: "main",
+                base: "develop",
+                body: "Automatic frontend improvements",
+                labels: ['automation']
+              });
+            } catch (error) {
+              console.log("PR creation skipped (possible duplicate)");
+            }
