@@ -1311,7 +1311,7 @@ jobs:
             - [ ] **Storybook Integration**: Interactive component playground
             - [ ] **Architecture Decision Records**: Technical decision documentation
             - [ ] **User Guides**: End-user documentation with examples
-            - [ ] **Deployment Guides**: Infrastructure and process documentation
+            - [ ] **Deployment Docs**: Infrastructure and process documentation
             
             ### Documentation Quality Standards
             - [ ] **Accuracy**: All documentation verified and up-to-date
