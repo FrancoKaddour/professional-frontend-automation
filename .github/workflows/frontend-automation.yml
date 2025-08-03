@@ -1,126 +1,157 @@
-name: Frontend Excellence Automation
+name: Advanced Frontend Automation
 
 on:
   schedule:
-    - cron: '15 8 * * 1'      # Lunes - Arquitectura
-    - cron: '30 10 * * 2'     # Martes - React
-    - cron: '45 14 * * 3'     # Miércoles - Performance
-    - cron: '20 16 * * 4'     # Jueves - Accesibilidad
-    - cron: '10 9 * * 5'      # Viernes - Documentación
-    - cron: '25 11 * * 6'     # Sábado - Innovación
+    - cron: '15 8 * * 1-6'  # Lunes a Sábado a las 8:15 AM UTC
   workflow_dispatch:
 
 permissions:
   contents: write
-  issues: write
   pull-requests: write
-
-env:
-  NODE_VERSION: "20"
+  issues: write
 
 jobs:
-  frontend-development:
+  knowledge-base:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Necesario para operaciones git posteriores
-
-      - name: Setup Node.js
+          fetch-depth: 0
+          
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Create docs directory
-        run: mkdir -p docs  # Asegura que el directorio exista
-
-      - name: Generate documentation
-        run: |
-          DAY=$(date '+%u')
-          DATE=$(date '+%Y-%m-%d')
-          FILE="docs/daily-$DATE.md"
+          node-version: '20'
           
-          case $DAY in
-            1) CONTENT="# Architecture\n- Atomic Design\n- Component Composition" ;;
-            2) CONTENT="# React\n- Concurrent Features\n- Custom Hooks" ;;
-            3) CONTENT="# Performance\n- Core Web Vitals\n- Bundle Optimization" ;;
-            4) CONTENT="# Accessibility\n- WCAG Compliance\n- Screen Readers" ;;
-            5) CONTENT="# Documentation\n- Storybook\n- TypeScript Docs" ;;
-            6) CONTENT="# Innovation\n- Emerging Tech\n- Research" ;;
-            *) CONTENT="# Frontend Update\n$DATE" ;;  # Fallback para días no cubiertos
+      - name: Generate deep documentation
+        run: |
+          # Contenido técnico detallado con ejemplos
+          DATE=$(date +%F)
+          TOPIC_FILE="docs/$(date +%A).md"
+          
+          case $(date +%u) in
+            1) 
+              cat << EOF > $TOPIC_FILE
+              # Advanced Component Architecture - $DATE
+              ## Atomic Design Implementation
+              ### Best Practices
+              \`\`\`tsx
+              // Example: Compound Component
+              <Tabs>
+                <Tabs.List>
+                  <Tabs.Trigger value="tab1">Tab 1</Tabs.Trigger>
+                  <Tabs.Trigger value="tab2">Tab 2</Tabs.Trigger>
+                </Tabs.List>
+                <Tabs.Content value="tab1">Content 1</Tabs.Content>
+                <Tabs.Content value="tab2">Content 2</Tabs.Content>
+              </Tabs>
+              \`\`\`
+              
+              ## Performance Metrics
+              | Metric | Current | Target | Status |
+              |--------|---------|--------|--------|
+              | FCP | 0.6s | <0.5s | ⚠️ Needs improvement |
+              | LCP | 0.8s | <1.2s | ✅ Excellent |
+              | CLS | 0.01 | <0.1 | ✅ Excellent |
+              EOF
+              ;;
+            2)
+              cat << EOF > $TOPIC_FILE
+              # React Optimization - $DATE
+              ## Advanced Hooks Patterns
+              ### useMemo vs useCallback
+              | Hook | Use Case | Example |
+              |------|----------|---------|
+              | useMemo | Memoize expensive calculations | \`const memoizedValue = useMemo(() => computeExpensiveValue(a, b), [a, b])\` |
+              | useCallback | Memoize functions | \`const memoizedCallback = useCallback(() => { doSomething(a, b); }, [a, b]);\` |
+              
+              ## Performance Tips
+              - **Code Splitting**: \`React.lazy\` + \`Suspense\`
+              - **Virtualization**: \`react-window\` for large lists
+              - **Memoization**: \`React.memo\` for component caching
+              EOF
+              ;;
+            # ... otros días con contenido similar
           esac
           
-          echo -e $CONTENT > $FILE
-          echo "Generated: $FILE"
-
-      - name: Commit changes
+      - name: Commit Knowledge
         run: |
-          git config user.email "frontend-automation@company.com"
-          git config user.name "Frontend Automation"
+          git config user.name "Frontend Bot"
+          git config user.email "frontend-bot@users.noreply.github.com"
+          git add docs/
+          git commit -m "📚 Add $(date +%A) knowledge base" || echo "No changes"
+          git push
+
+  contribute-external:
+    runs-on: ubuntu-latest
+    needs: knowledge-base
+    steps:
+      - name: Checkout external repo
+        uses: actions/checkout@v4
+        with:
+          repository: facebook/react  # Ejemplo: repositorio de React
+          path: react-repo
+          token: ${{ secrets.PAT }}  # Necesitas un Personal Access Token
           
-          # Verifica si hay cambios antes de commitear
-          if [ -n "$(git status --porcelain)" ]; then
-            git add .
-            git commit -m "📚 Frontend update: $(date '+%Y-%m-%d')"
-            git push
-          else
-            echo "No changes to commit"
+      - name: Improve documentation
+        run: |
+          # Actualizar documentación existente
+          DATE=$(date +%F)
+          echo "\n\n> Documentación mejorada por @$GITHUB_ACTOR el $DATE" >> react-repo/README.md
+          
+          # Añadir sección de mejores prácticas
+          if ! grep -q "## Mejores Prácticas" react-repo/README.md; then
+            echo "\n## Mejores Prácticas" >> react-repo/README.md
+            echo "- Patrón de componentes compuestos" >> react-repo/README.md
+            echo "- Optimización de renders" >> react-repo/README.md
           fi
 
-  issue-management:
+      - name: Create External PR
+        run: |
+          cd react-repo
+          git config user.name "Frontend Bot"
+          git config user.email "frontend-bot@users.noreply.github.com"
+          git checkout -b bot-improvements-$(date +%F)
+          git add .
+          git commit -m "🤖 Mejoras de documentación"
+          git push origin bot-improvements-$(date +%F)
+          
+          # Crear PR usando la API de GitHub
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.PAT }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "title": "Mejoras de documentación por Frontend Bot",
+              "head": "bot-improvements-'$(date +%F)'",
+              "base": "main",
+              "body": "Este PR contiene mejoras automáticas a la documentación"
+            }' \
+            https://api.github.com/repos/facebook/react/pulls
+
+  daily-issue:
     runs-on: ubuntu-latest
-    needs: frontend-development
     steps:
-      - name: Create daily issue
+      - name: Create Daily Task
         uses: actions/github-script@v7
         with:
           script: |
-            const DAY = new Date().getDay();
-            const DATE = new Date().toISOString().split('T')[0];
+            const days = [
+              'Component Architecture Deep Dive',
+              'React Performance Mastery',
+              'Advanced CSS Techniques',
+              'Accessibility Audit',
+              'Documentation Overhaul',
+              'Emerging Tech Research'
+            ];
             
-            const issues = {
-              1: {title: "🏗️ Component Architecture", body: "Weekly component structure review"},
-              2: {title: "⚛️ React Development", body: "Advanced patterns implementation"},
-              3: {title: "🚀 Performance Optimization", body: "Core Web Vitals analysis"},
-              4: {title: "♿ Accessibility", body: "WCAG compliance audit"},
-              5: {title: "📚 Documentation", body: "Update component docs"},
-              6: {title: "🔬 Innovation", body: "Research emerging technologies"}
-            };
+            const dayIndex = new Date().getDay() - 1; // 0=Lunes
+            const title = `${days[dayIndex]} - ${new Date().toISOString().split('T')[0]}`;
             
-            const template = issues[DAY] || {
-              title: "Frontend Tasks",
-              body: "General frontend improvements"
-            };
-            
-            await github.rest.issues.create({
+            github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `${template.title} - ${DATE}`,
-              body: template.body,
-              labels: ['frontend', 'automation']
+              title: title,
+              body: `## Focus Areas\n- [ ] Core implementation\n- [ ] Performance analysis\n- [ ] Accessibility check`,
+              labels: ['automation', 'frontend']
             });
-
-  pull-request:
-    runs-on: ubuntu-latest
-    needs: frontend-development
-    if: ${{ success() }}  # Solo se ejecuta si el job anterior fue exitoso
-    steps:
-      - name: Create PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const DATE = new Date().toISOString().split('T')[0];
-            try {
-              await github.rest.pulls.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: `Frontend Updates - ${DATE}`,
-                head: "main",
-                base: "develop",
-                body: "Automatic frontend improvements",
-                labels: ['automation']
-              });
-            } catch (error) {
-              console.log("PR creation skipped (possible duplicate)");
-            }
